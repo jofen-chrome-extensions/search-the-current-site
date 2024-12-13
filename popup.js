@@ -19,12 +19,34 @@ getCurrentTab((tab) => {
     document.getElementById("searchSite").innerText = "Search on: " + tab.url.split("/")[2];
   });
 
-chrome.tabs.executeScript( {
-  code: "window.getSelection().toString();"
-}, function(selection) {
-    document.getElementById("searchText").value = selection[0];
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+
+    if (activeTab && activeTab.id) {
+        chrome.scripting.executeScript(
+            {
+                target: { tabId: activeTab.id },
+                func: getSelectedText
+            },
+            (results) => {
+                if (results && results[0] && results[0].result) {
+                    document.getElementById("searchText").value = results[0].result;
+                }
+            }
+        );
+    }
 });
 
+// This function will run in the context of the web page
+function getSelectedText() {
+    return window.getSelection().toString();
+}
+
+function search(text, tab) {
+  let url =
+    'https://google.com/search?q=' + text + ' site:' + tab.url.split("/")[2];
+  chrome.tabs.create({url: url, index: tab.index + 1});
+}
 
 document.getElementById('idSubmit').onclick = function() {
   console.log("submit");
